@@ -1,0 +1,1 @@
+Restores explicit physical SNAP mask selection and prepared_source graph support. Preserves ENVI .hdr-to-.img resolution. Apply ONLY to TRINETRA-recovery/assembled. No datasets, credentials, downloads or training. Verified locally: 29 preprocessing tests plus 15 subtests passed. Rerun the full recovered test suite on Windows before integration.

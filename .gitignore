@@ -1,0 +1,60 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python environments, packaging, and caches
+.venv/
+.venv-backup-*/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Frontend
+node_modules/
+web/dist/
+*.tsbuildinfo
+
+# Large or generated assets: keep only directory markers
+data/**
+!data/README.md
+!data/raw/
+!data/raw/.gitkeep
+!data/processed/
+!data/processed/.gitkeep
+!data/cache/
+!data/cache/.gitkeep
+!data/runs/
+!data/runs/.gitkeep
+!data/kuro_siwo/
+!data/kuro_siwo/README.md
+artifacts/**
+!artifacts/README.md
+!artifacts/models/
+!artifacts/models/.gitkeep
+!artifacts/reports/
+!artifacts/reports/.gitkeep
+*.tif
+*.tiff
+*.SAFE/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Editor, notebook, and OS files
+.idea/
+.vscode/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+*.log

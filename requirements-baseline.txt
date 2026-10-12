@@ -1,0 +1,2 @@
+# CPU-only deterministic flood fallback; reuses existing preprocessing libraries.
+-e .[baseline]

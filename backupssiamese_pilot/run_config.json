@@ -1,0 +1,68 @@
+{
+  "config": {
+    "base_channels": 16,
+    "batch_size": 8,
+    "seed": 17,
+    "learning_rate": 0.001,
+    "mode": "pilot",
+    "loss": "masked BCE + soft Dice",
+    "checkpoint_selection": "validation macro-event IoU",
+    "patience": 5
+  },
+  "data": {
+    "local_manifest_sha256": "36cedd5c6db25e8cc71e82676e89da37326eb44cc972ccb77565694973ec2ddc",
+    "split_sha256": {
+      "train": "3cbd3f67a1dfb90e847c934c3bccca45fda797bf4c6a6f4e0f1bda3c79d07c19",
+      "validation": "00976a4eb045f321a70321544189cf65a1c9a4a6947307cf957df373c34aa862",
+      "test": "aafeed89b11b50b5ed2297e0736e9032dc448d816498ce2629b5adeb497e691b"
+    },
+    "train_events": [
+      "1111004",
+      "1111005",
+      "1111006",
+      "1111009",
+      "1111010",
+      "1111011",
+      "470",
+      "492",
+      "497",
+      "498",
+      "502",
+      "518",
+      "554",
+      "555",
+      "567"
+    ],
+    "validation_events": [
+      "1111008",
+      "520"
+    ],
+    "train_samples": 104,
+    "validation_samples": 2,
+    "excluded": [
+      "Trishuli",
+      "EMSR927"
+    ],
+    "test_used": false,
+    "partial_event_pilot": true
+  },
+  "transform": {
+    "channel_order": [
+      "pre_VV",
+      "pre_VH",
+      "post_VV",
+      "post_VH"
+    ],
+    "source": "Kuro Siwo GRD linear backscatter",
+    "db_clip": [
+      -35.0,
+      5.0
+    ],
+    "scale": "(clip(db,-35,5)+15)/20",
+    "invalid_input": 0,
+    "statistics_fitted": false,
+    "dem_input": false
+  },
+  "gpu": "Tesla T4",
+  "threshold": 0.5
+}

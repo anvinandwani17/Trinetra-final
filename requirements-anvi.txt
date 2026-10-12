@@ -1,0 +1,3 @@
+# Keep editable local code, plus tests and the geospatial environment.
+# PyTorch is installed separately to select official CPU-only wheels.
+-e .[dev,geo]
