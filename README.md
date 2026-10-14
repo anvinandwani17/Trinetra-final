@@ -2,130 +2,68 @@
 
 Multimodal AI Hackathon 2026 · Track B · Anvi + Arnav
 
-TRINETRA aims to turn a selected area and flood date into satellite-based flood
-mapping, potentially affected infrastructure, settlement access analysis, and a
-grounded situation report.
+TRINETRA turns a selected area and flood date into satellite-based flood mapping, potentially affected infrastructure, settlement access analysis, and a grounded situation report.
 
-**Current stage: scaffold, Sentinel-1 discovery, and a Trishuli raw-download runner.** Implemented
-features include API health, configuration, tests, the existing React health-check
-page, and a catalog-only Sentinel-1 pair-selection CLI. Discovery live verification
-is blocked in the authoring workspace; see the detailed verification status below.
-Real raw-download verification remains pending on Anvi's laptop.
-Preprocessing, flood detection, training, maps, infrastructure analysis,
-connectivity, reports, and evaluation are not implemented.
-There are no sample flood predictions or fabricated satellite results.
+> Educational prototype. Not an operational emergency-response product.
 
-## Sentinel-1 acquisition discovery
+## Current status
 
-The first analysis feature is implemented as `select_s1_pair(aoi, flood_date)`.
-It searches official CDSE STAC metadata, rejects incompatible orbit/direction or
-insufficient footprint coverage, and caches metadata. No imagery is downloaded.
-Follow [the discovery guide](docs/sentinel1_discovery.md) for Windows commands,
-selection constraints, result fields, and actual verification status.
+The repository currently implements a **Sentinel-1 pipeline for the Trishuli (Nepal) case, up to a deterministic flood-candidate baseline**, plus a FastAPI health API and a React health-check page.
 
-## Trishuli raw downloads
-
-The authenticated runner discovers/pins two scenes, downloads only those selected
-SAFE archives, caches verified files, supports safe resume when the server permits,
-and checks archive integrity plus VV/VH raster readability. Follow
-[the download guide](docs/trishuli_download.md) for credentials, Windows commands,
-storage paths, and the pending real-download verification. No preprocessing runs.
-
-## Intended workflow
-
-Area + date → satellite discovery → preprocessing → flood detection with terrain
-and model evidence → infrastructure exposure → road connectivity → map + report.
-
-This is an intended workflow, not a claim of current functionality.
-
-## Architecture and ownership
-
-One repository, one installable Python package, one FastAPI process, and one React
-application. Use local files for later data and outputs. No database, queue,
-Docker, paid service, or additional deployment stack is needed for this scaffold.
-
-| Location | Purpose | Primary owner |
+| Stage | Status | Entry point |
 | --- | --- | --- |
-| `src/trinetra/discovery/` | Satellite catalog queries and defensible before/after selection | Anvi |
-| `src/trinetra/downloads/` | Authenticated raw SAFE storage, resume, and validation | Anvi |
-| `src/trinetra/preprocessing/` | SAR preparation, correction, and common raster grid | Anvi |
-| `src/trinetra/flood_detection/` | Physical baseline, model fusion, flood masks, uncertainty | Anvi |
-| `src/trinetra/models/` | Model architecture, training, and inference | Anvi |
-| `src/trinetra/terrain/` | DEM preparation, slope, and radar observability | Anvi |
-| `src/trinetra/infrastructure/` | Historical OSM and potential buildings/roads/bridges exposure | Arnav |
-| `src/trinetra/connectivity/` | Compare baseline and hazard-affected road access | Arnav |
-| `src/trinetra/reporting/` | Reports from measured results and provenance | Shared |
-| `src/trinetra/api/` | HTTP routes and future orchestration adapters | Arnav |
-| `src/trinetra/core/` | Small shared environment configuration | Shared |
-| `src/trinetra/evaluation/` | Held-out metrics and check-only reference comparison | Anvi |
-| `web/` | React frontend; map interface will come later | Arnav |
-| `tests/` | Offline checks of real implemented behavior | Shared |
-| `notebooks/` | Future Anvi experiments; reusable code belongs in `src/` | Anvi |
-| `scripts/` | Future small CLI entry points; empty today | Shared |
-| `data/` | Ignored local inputs, cache, processed products, and run outputs | Shared |
-| `artifacts/` | Ignored future model checkpoints and exported reports | Shared |
-| `docs/` | Architecture boundaries and project decisions | Shared |
+| API health + config + tests | Implemented | `uvicorn trinetra.api.main:app` |
+| Sentinel-1 before/after pair discovery (CDSE STAC) | Implemented | `python -m trinetra.discovery` |
+| Authenticated raw SAFE download + validation (OData or S3) | Implemented | `scripts/run_case.py` |
+| SAR preprocessing with ESA SNAP (20 m VV/VH gamma-nought, change, terrain observability) | Implemented, real-run verification pending | `scripts/preprocess_case.py` |
+| Deterministic flood baseline (no neural network) | Implemented | `scripts/run_flood_baseline.py` |
+| Model training / fusion, infrastructure exposure, road connectivity, maps, reports, evaluation | **Not implemented** | – |
 
-Domain folders except `discovery/` and `downloads/` currently contain documentation-only
-`__init__.py` placeholders.
-They are separate Python modules, not separate services. See
-[architecture](docs/architecture.md) for boundaries before adding pipeline code.
+There are no sample flood predictions and no fabricated satellite results. Only a run manifest with `status: complete` proves that a stage actually ran and passed its checks.
 
-## Local prerequisites
+## How a run works
 
-**Anvi's Windows ML/geospatial environment:** follow
-[the Windows setup guide](docs/windows_setup.md). It adds optional geospatial
-packages and CPU-only PyTorch, and runs functional environment checks. The
-lightweight API-only setup below remains available for Arnav.
+```
+AOI + flood date
+   │
+   ▼  1. Discovery      select_s1_pair() → pinned pre/post Sentinel-1 GRD pair
+   ▼  2. Download       two raw SAFE archives, hash-verified, VV/VH readable
+   ▼  3. Preprocess     ESA SNAP: orbit, noise, calibration, terrain flattening,
+   │                    terrain correction, layover/shadow, common 20 m UTM grid
+   ▼  4. Check          independent verification of grid, hashes, previews
+   ▼  5. Flood baseline VV/VH darkening + DEM slope + observability → candidate flood mask
+   ▼  6. Check          independent verification of baseline outputs
 
-- Git.
-- Python 3.11 or 3.12 recommended, with pip and venv.
-- Node.js 22.12+ (Node 22 LTS recommended) and npm for frontend work.
-- An editor such as VS Code.
+(Later, not implemented: model fusion → infrastructure exposure → road connectivity → map + report)
+```
 
-A GPU, CUDA, GDAL/SNAP, and geospatial packages are not needed at this stage.
+Each stage reads the previous stage's manifest and refuses to continue if it is not `complete`.
 
-## Backend setup
+## Quick start: API and frontend only
 
-Clone this repository and run commands from its root:
+Needs Git, Python 3.11/3.12, and Node.js 22.12+. No credentials, GPU, or geospatial tools.
 
 ```bash
-git clone https://github.com/anvinandwani17/TRINETRA.git
-cd TRINETRA
+git clone https://github.com/anvinandwani17/Trinetra-final.git
+cd Trinetra-final
 python -m venv .venv
 ```
 
-If you received the scaffold as a ZIP, extract it and open the `TRINETRA` folder
-instead of cloning an empty repository. Create the virtual environment there.
-To publish those files to the currently empty repository from your own terminal:
-
-```bash
-git init -b main
-git remote add origin https://github.com/anvinandwani17/TRINETRA.git
-git add .
-git commit -m "Initialize TRINETRA project scaffold"
-git push -u origin main
-```
-
-Use your normal GitHub login when prompted. These publication commands assume
-the remote remains empty; if someone has added commits, clone that repository
-and copy the scaffold into it instead. Never force-push to replace teammates' work.
-
-Activate the environment on Windows PowerShell:
+Activate the environment and create your `.env`:
 
 ```powershell
+# Windows PowerShell
 .\.venv\Scripts\Activate.ps1
 Copy-Item .env.example .env
 ```
 
-Or macOS/Linux:
-
 ```bash
+# macOS / Linux
 source .venv/bin/activate
 cp .env.example .env
 ```
 
-Then install, test, and run:
+Install, test, and start the API (from the repo root, so `.env` is found):
 
 ```bash
 python -m pip install -r requirements.txt
@@ -133,145 +71,193 @@ python -m pytest
 python -m uvicorn trinetra.api.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-If PowerShell restricts activation, run the environment's Python directly, for
-example `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`, and use
-that same executable for tests and uvicorn. Changing system policy is unnecessary.
+If PowerShell blocks activation, call the venv's Python directly, e.g. `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`.
 
-- Health: <http://127.0.0.1:8000/api/v1/health>
-- Interactive API docs: <http://127.0.0.1:8000/docs>
-- OpenAPI: <http://127.0.0.1:8000/openapi.json>
+- Health: <http://127.0.0.1:8000/api/v1/health> → `{"status":"ok","service":"TRINETRA","version":"0.1.0"}`
+- API docs: <http://127.0.0.1:8000/docs>
 
-Expected health response:
+This only confirms the API process responds. There is no analysis/jobs endpoint yet; the flood pipeline is run from the command-line scripts below.
 
-```json
-{"status":"ok","service":"TRINETRA","version":"0.1.0"}
-```
-
-This confirms the API process responds. It does not verify satellite access,
-credentials, model availability, or readiness for flood analysis. There is no
-analysis/jobs endpoint yet; unimplemented routes return 404.
-
-## Frontend setup
-
-Keep the backend running. Open a second terminal:
+In a second terminal, start the frontend:
 
 ```bash
-cd TRINETRA/web
+cd web
 npm install
 npm run dev
 ```
 
-If already at the repository root, use `cd web`. Open <http://127.0.0.1:5173>
-and click **Check API health**. Vite proxies `/api` to the backend on port 8000;
-there is no need for permissive CORS or frontend credentials. Port 5173 is fixed
-so a port conflict fails clearly.
+Open <http://127.0.0.1:5173> and click **Check API health**. Vite proxies `/api` to port 8000. `npm run build` creates a static build in `web/dist/`.
 
-```bash
-npm run build
+## Running the Trishuli flood pipeline (Windows)
+
+The pipeline commands below are documented for Windows PowerShell, run from the repo root. They use the project's virtual environment explicitly (`.\.venv\Scripts\python.exe`).
+
+### 0. Prerequisites
+
+- Everything from the quick start above (venv created).
+- A free [Copernicus Data Space Ecosystem](https://dataspace.copernicus.eu) account.
+- **ESA SNAP 14 with the Microwave Toolbox** (for step 3). Install from the [official SNAP page](https://step.esa.int/main/download/snap-download/). It is a separate application, not a Python package.
+- Free disk space: each Sentinel-1 scene can be hundreds of MB to over 1 GB. Plan for roughly 2 × one scene of temporary space on top of the saved scenes, plus SNAP working space.
+- Optional ML/geospatial environment: see [`docs/windows_setup.md`](docs/windows_setup.md).
+
+### 1. Configure `.env`
+
+Edit the `.env` you copied from `.env.example`. Never commit this file.
+
+```
+# CDSE login (default OData download route)
+CDSE_USERNAME=your_registered_email
+CDSE_PASSWORD=your_password
+
+# CDSE S3 keys (only for --transport s3; generate at https://eodata-s3keysmanager.dataspace.copernicus.eu)
+CDSE_S3_ACCESS_KEY=your_access_key
+CDSE_S3_SECRET_KEY=your_secret_key
+
+# Path to SNAP's gpt executable (needed for preprocessing)
+SNAP_GPT="C:/Program Files/esa-snap/bin/gpt.exe"
 ```
 
-This validates and creates a static build in `web/dist/`. `npm run preview`
-previews static assets only; API routing for a deployed build will be configured
-later. Health integration is supported via `npm run dev` today.
+### 2. Install Python extras
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,discovery,download,s3,preprocess]"
+```
+
+Verify SNAP is reachable and supports layover/shadow masks:
+
+```powershell
+Test-Path "C:\Program Files\esa-snap\bin\gpt.exe"
+& "C:\Program Files\esa-snap\bin\gpt.exe" SAR-Simulation -h   # output must include saveLayoverShadowMask
+```
+
+### 3. Discover the pre/post pair (optional on its own)
+
+`run_case.py` performs discovery automatically. To run it separately:
+
+```powershell
+.\.venv\Scripts\python.exe -m trinetra.discovery --aoi examples\trishuli_aoi.geojson --date 2026-08-26 --refresh --output data\runs\trishuli\s1_pair.json
+```
+
+This queries the official CDSE STAC catalog and downloads no imagery. It requires the same relative orbit and direction for both scenes and at least 99 % AOI coverage. Details: [`docs/sentinel1_discovery.md`](docs/sentinel1_discovery.md).
+
+### 4. Download the raw scenes
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_case.py --aoi examples\trishuli.geojson --date 2026-08-26
+```
+
+Useful options:
+
+| Option | When to use |
+| --- | --- |
+| `--transport s3` | The OData archive service keeps returning HTTP 502. Uses the official CDSE S3 route (needs the S3 keys). |
+| `--two-factor` | Your CDSE account has 2FA; you will be prompted for a one-time code. |
+| `--restart-partial` | A partial download cannot be resumed. Discards incomplete files only. |
+| `--max-product-gib N` | Raise the per-scene size cap (default 3 GiB, max 6). |
+
+Re-running the same command resumes or reuses verified files. On success, `data/runs/trishuli/download_manifest.json` says `status: complete`:
+
+```powershell
+Get-Content data\runs\trishuli\download_manifest.json
+```
+
+This first runner accepts only the date `2026-08-26` and a Trishuli-area AOI (longitude 84.5–85.6, latitude 27.6–28.8). Details and troubleshooting: [`docs/trishuli_download.md`](docs/trishuli_download.md).
+
+### 5. Preprocess with SNAP
+
+```powershell
+.\.venv\Scripts\python.exe scripts\preprocess_case.py
+.\.venv\Scripts\python.exe scripts\check_preprocessed_case.py
+```
+
+For low-memory machines add `--cache-mb 1024 --threads 1` to the first command. `--prepare-only` generates the SNAP graphs without running SNAP.
+
+Outputs in `data/processed/trishuli/`: `before_gamma0_db.tif`, `after_gamma0_db.tif`, `change_db.tif`, `observability.tif`, `quality_reasons.tif`, layover/shadow masks, `processing_manifest.json`, and PNG previews in `previews/`. Open the four previews and the manifest and check them by eye before continuing. Details: [`docs/sentinel1_preprocessing.md`](docs/sentinel1_preprocessing.md).
+
+### 6. Run the deterministic flood baseline
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-baseline.txt
+.\.venv\Scripts\python.exe scripts\run_flood_baseline.py
+.\.venv\Scripts\python.exe scripts\check_flood_baseline.py
+```
+
+This CPU-only stage combines VV/VH darkening, DEM slope, observability, and small-region cleanup. It writes a candidate flood GeoTIFF and GeoJSON, an uncalibrated evidence score, and PNG previews to `data/processed/trishuli/baseline/`. Pixels that radar cannot observe stay **unknown**, not "dry". Details and thresholds: [`docs/deterministic_flood_baseline.md`](docs/deterministic_flood_baseline.md).
+
+### Where files end up
+
+```
+data/
+  cache/s1_metadata/               discovery metadata cache
+  raw/sentinel1/<UUID>/            raw SAFE zips + metadata
+  runs/trishuli/                   s1_pair.json, download_manifest.json
+  processed/trishuli/              preprocessed rasters, previews, manifest
+  processed/trishuli/baseline/     flood baseline outputs
+```
+
+`data/` and `artifacts/` are ignored by Git.
+
+## Architecture and ownership
+
+One repository, one installable Python package (`src/trinetra`), one FastAPI process, one React app. Local files only: no database, queue, Docker, or paid service.
+
+| Location | Purpose | Owner |
+| --- | --- | --- |
+| `src/trinetra/discovery/` | Catalog queries and before/after pair selection | Anvi |
+| `src/trinetra/downloads/` | Authenticated raw SAFE storage, resume, validation | Anvi |
+| `src/trinetra/preprocessing/` | SNAP-based SAR preparation and common raster grid | Anvi |
+| `src/trinetra/flood_detection/` | Physical baseline, (later) model fusion, masks, uncertainty | Anvi |
+| `src/trinetra/models/` | Model architecture, training, inference (not yet implemented) | Anvi |
+| `src/trinetra/terrain/` | DEM preparation, slope, radar observability | Anvi |
+| `src/trinetra/infrastructure/` | Historical OSM buildings/roads/bridges exposure (not yet implemented) | Arnav |
+| `src/trinetra/connectivity/` | Baseline vs hazard-affected road access (not yet implemented) | Arnav |
+| `src/trinetra/reporting/` | Reports from measured results and provenance (not yet implemented) | Shared |
+| `src/trinetra/api/` | HTTP routes | Arnav |
+| `src/trinetra/core/` | Shared environment configuration | Shared |
+| `src/trinetra/evaluation/` | Held-out metrics, check-only reference comparison (not yet implemented) | Anvi |
+| `scripts/` | CLI entry points: `run_case.py`, `preprocess_case.py`, `check_preprocessed_case.py`, `run_flood_baseline.py`, `check_flood_baseline.py`, `inspect_snap_metadata.py` | Shared |
+| `web/` | React frontend (health check only; map comes later) | Arnav |
+| `tests/` | Offline checks of implemented behaviour | Shared |
+| `examples/` | Example AOI GeoJSON files | Shared |
+| `notebooks/` | Experiments; reusable code belongs in `src/` | Anvi |
+| `docs/` | Per-stage guides and architecture decisions | Shared |
+
+See [`docs/architecture.md`](docs/architecture.md) for module boundaries before adding pipeline code.
 
 ## Dependencies
 
-Python requirements are defined in `pyproject.toml`; `requirements.txt` installs
-the local package with development extras. Compatible ranges are used for Python
-dependencies; this is not a full transitive lockfile.
+Python dependencies are declared in `pyproject.toml` with optional extras:
 
-| Dependency | Purpose |
+| Extra / file | Adds |
 | --- | --- |
-| FastAPI | API routes, response validation, OpenAPI docs |
-| Uvicorn | Local ASGI server |
-| pydantic-settings | Environment and `.env` configuration |
-| pytest (development) | Basic tests |
-| HTTPX (development) | FastAPI test client transport |
-| setuptools (build) | Install the `src/` Python package |
-| React + React DOM | Frontend UI |
-| Vite + React plugin (development) | Frontend development server and build |
+| core (`requirements.txt`) | FastAPI, Uvicorn, pydantic-settings, pytest, HTTPX |
+| `discovery` | Shapely, pyproj |
+| `download` | Rasterio (raw TIFF validation) |
+| `s3` | S3 client for the CDSE object-storage route |
+| `preprocess` | Preprocessing Python dependencies (SNAP itself is installed separately) |
+| `requirements-baseline.txt` | CPU-only baseline dependencies |
+| `requirements-ml-cpu.txt` / `requirements-anvi.txt` | Optional CPU PyTorch / Anvi's full Windows environment |
 
-Frontend dependencies use compatible ranges. The first successful `npm install`
-will generate `web/package-lock.json`; commit it, then use `npm ci` thereafter.
-A lockfile could not be generated in the authoring workspace because registry access
-is blocked. Backend tests and the frontend build also require local verification.
-Later, add only the packages needed by each approved step. Likely candidates are
-NumPy/Rasterio for rasters, PyTorch for the model, GeoPandas/Shapely for exposure,
-NetworkX for connectivity, and MapLibre for maps. None is installed by this scaffold.
-The Sentinel-1 preprocessing toolchain must be chosen before claiming raw SAR
-processing is supported; Rasterio alone is not an SAR calibration/RTC processor.
-
-## Configuration and future accounts
-
-No accounts or credentials are required for local health checks or tests.
-Real scene downloads require the local CDSE login documented in the download guide.
-`.env.example` contains an optional app name and empty Copernicus credential
-placeholders. The current application only reads `TRINETRA_APP_NAME`.
-Start the backend from the repository root so its `.env` can be found.
-
-| Account/service | When needed | Credential policy |
-| --- | --- | --- |
-| GitHub | Collaborating on this repository | Add Arnav as a collaborator; use local Git authentication, never commit tokens |
-| Copernicus Data Space Ecosystem | Future authenticated Sentinel downloads | Register a free account; exact token/auth flow will be selected when discovery/downloads are implemented |
-| Kaggle or Google Colab | Future free GPU experiments/training | Choose an available free option; no GPU account is required for the API |
-| Historical OSM service | Future infrastructure snapshots | Select a suitable historical service and check its access requirements; do not substitute present-day OSM |
-| Report generation | Future deterministic reports | No paid LLM/API account is assumed |
-
-Do not put secrets in `web/`, Git history, notebooks, URLs, or screenshots.
-Any future `VITE_*` variable is public browser configuration, never a secret.
-Large datasets, caches, checkpoints, and generated reports are ignored by Git.
+Frontend: React, React DOM, Vite. Run `npm ci` once `web/package-lock.json` is committed.
 
 ## Data and scientific boundaries
 
-Working constraints below follow the supplied execution plan; confirm them
-against the official brief before implementing data access and evaluation:
-
-- Discover real satellite acquisitions for user-selected areas/dates; validate
-  before/after geometry and record acquisition provenance.
-- Keep radar-unobservable terrain distinct from non-flooded terrain.
-- Use an approved pre-event historical OSM snapshot. Do not hardcode a single
-  event's snapshot date as a universal setting.
-- Keep EMS/UNOSAT/published damage references check-only in `evaluation/`;
-  never import them into discovery, preprocessing, training, or prediction.
+- Satellite scenes are discovered from the real CDSE catalog; before/after geometry is validated and provenance recorded.
+- Radar-unobservable terrain (layover, shadow, missing data) is kept distinct from non-flooded terrain.
+- Use an approved pre-event historical OSM snapshot; do not hardcode one event's date.
+- EMS/UNOSAT/published damage references are check-only in `evaluation/`. Never use them in discovery, preprocessing, training, or prediction.
 - Split future model data by event and prevent evaluation-event leakage.
-- Describe intersecting buildings, roads, and bridges as **potentially affected**,
-  not confirmed destroyed. Road-access outputs will be analytical estimates.
-- Generate reports from computed metrics and provenance, with no invented values.
+- Intersecting buildings, roads, and bridges are **potentially affected**, not confirmed destroyed. Road access outputs are analytical estimates.
+- Reports are generated from computed metrics and provenance, with no invented values.
+- The flood baseline output is a *candidate* mask with an uncalibrated evidence score, not a validated flood extent.
+
+## Known limitations
+
+- The pipeline is currently hard-wired to the Trishuli case (date `2026-08-26`, Trishuli-area AOI).
+- Real-data verification of download, SNAP preprocessing, and the baseline is expected on Anvi's Windows laptop; treat these stages as unverified until their manifests say `status: complete` and their previews have been inspected.
+- Sentinel-1 scenes are large; downloads and SNAP runs are slow and need significant disk and memory.
+- No API endpoint triggers the pipeline yet.
 
 ## Team workflow
 
-Anvi works primarily inside satellite, flood, model, terrain, and evaluation
-modules. Arnav works primarily inside infrastructure, connectivity, API, and web.
-Coordinate shared output contracts before the next implementation step. Use small
-feature branches, run `python -m pytest`, and run `npm run build` for frontend edits.
-Both checks must work without downloading datasets.
-
-## Scope boundary
-
-Work stops at selected raw downloads and file validation. No models trained,
-no fake satellite results, and no preprocessing or downstream analysis implemented.
-No real imagery has been downloaded in the authoring workspace.
-
-Educational prototype. Not an operational emergency-response product.
-
-For repeated OData archive HTTP 502 errors, use the official CDSE S3 route:
-`python scripts/run_case.py --aoi examples/trishuli.geojson --date 2026-08-26 --transport s3`.
-Install the `s3` extra and set the two CDSE S3 keys in `.env` first; see
-[download instructions](docs/trishuli_download.md#official-s3-route-when-the-archive-service-fails).
-
-Physical preprocessing of the verified Trishuli pair is available through
-`python scripts/preprocess_case.py`. It requires ESA SNAP with Microwave Toolbox
-and the `preprocess` Python extra. See [preprocessing instructions](docs/sentinel1_preprocessing.md)
-for the shared 20 m VV/VH gamma-nought outputs, change, terrain observability,
-and PNG previews. Real Trishuli outputs have not yet been verified in the authoring workspace.
-# Deterministic flood fallback
-
-After completing and checking Trishuli preprocessing, install
-`requirements-baseline.txt`, then run `python scripts/run_flood_baseline.py`
-and `python scripts/check_flood_baseline.py`. This CPU-only stage combines
-VV/VH darkening, DEM slope, observability and small-region cleanup without a
-neural network. It exports candidate flood GeoTIFF/GeoJSON, an uncalibrated
-evidence score and PNG previews under `data/processed/trishuli/baseline/`.
-Unknown pixels remain unknown. See `docs/deterministic_flood_baseline.md`
-for exact Windows commands, thresholds, validation and limitations.
-
+Anvi works mainly in satellite, flood, model, terrain, and evaluation modules; Arnav in infrastructure, connectivity, API, and web. Agree on shared output contracts before the next implementation step. Use small feature branches, run `python -m pytest` and (for frontend edits) `npm run build`. Both must work without downloading datasets. Never commit `.env`, tokens, raw scenes, caches, or checkpoints.
